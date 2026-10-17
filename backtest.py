@@ -13,7 +13,6 @@ def _validate_inputs(
     cost_per_side: float,
     required_price_columns: tuple[str, ...],
 ) -> None:
-    """Validate indexes, signals, costs, and required price data."""
     if not np.isfinite(cost_per_side) or not 0 <= cost_per_side < 1:
         raise ValueError("cost_per_side must be finite and between 0 and 1")
 
@@ -70,12 +69,6 @@ def run_backtest(
     signals: pd.Series,
     cost_per_side: float = 0.0005,
 ) -> tuple[pd.Series, dict[str, float]]:
-    """Backtest next-session intraday trades using prior-close signals.
-
-    Each active session is treated as a separate open-to-close round trip,
-    so both entry and exit costs are charged for every active session.
-    Swing strategies should use run_swing_backtest instead.
-    """
     _validate_inputs(
         prices, signals, cost_per_side, ("Open", "Close")
     )
@@ -100,13 +93,6 @@ def swing_positions(
     signals: pd.Series,
     liquidate_at_end: bool = True,
 ) -> pd.Series:
-    """Map close-generated signals to next-open positions.
-
-    The final position is set to cash when liquidate_at_end is true.
-    This makes the prior interval charge an exit cost at the final
-    observed open. The final row has no open-to-open return because
-    no subsequent open exists.
-    """
     if signals.isna().any() or not signals.isin([0, 1]).all():
         raise ValueError(
             "Signals must contain only 0 (cash) or 1 (long), "
@@ -128,13 +114,6 @@ def run_swing_backtest(
     cost_per_side: float = 0.0005,
     liquidate_at_end: bool = True,
 ) -> tuple[pd.Series, dict[str, float]]:
-    """Backtest long/cash swing trades using next-open execution.
-
-    Each return is from Open[t] to Open[t+1], using the position already
-    held at Open[t]. Entry costs are charged in the interval beginning
-    at the entry open; exit costs are charged in the interval ending at
-    the exit open. The final return is NaN because there is no next open.
-    """
     _validate_inputs(prices, signals, cost_per_side, ("Open",))
 
     positions = swing_positions(
